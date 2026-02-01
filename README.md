@@ -1,6 +1,6 @@
 ## Think-beyond-Instances
 
-## Requirements
+## ⚙️ Requirements
 You can run pip install -r requirements.txt to deploy the environment.
 
 ## Data Preparation
@@ -20,7 +20,7 @@ AdaR expects data in **JSONL format**, with each line as:
 ```
 
 
-## Evaluation
+## 🔧 Evaluation
 
 To evaluate the predicted answer, run the following command:
 
