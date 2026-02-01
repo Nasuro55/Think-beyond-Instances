@@ -9,15 +9,7 @@ You can run pip install -r requirements.txt to deploy the environment.
 
  ### 📂 Data Preparation
 
-AdaR expects data in **JSONL format**, with each line as:
-
-```json
-{
-  "query": "The math problem statement",
-  "chosen": "The chain-of-thought reasoning",
-  "answer": "The gold standard answer"
-}
-```
+Think-beyond-Instances expects data in **JSONL format**.
 
 
 ## 🔧 Evaluation
@@ -25,5 +17,7 @@ AdaR expects data in **JSONL format**, with each line as:
 To evaluate the predicted answer, run the following command:
 
 ```bash
+conda create -n Think_beyond_Instances python=3.10
+conda activate Think_beyond_Instances
 cd code
 python show_result.py
