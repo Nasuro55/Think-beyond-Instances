@@ -17,11 +17,8 @@ AdaR expects data in **JSONL format**, with each line as:
   "chosen": "The chain-of-thought reasoning",
   "answer": "The gold standard answer"
 }
+```
 
-Field,Description
-query,Input math problem
-chosen,Chain-of-thought reasoning
-answer,Ground-truth answer
 
 ## Evaluation
 
