@@ -20,4 +20,4 @@ To evaluate the predicted answer, run the following command:
 conda create -n Think_beyond_Instances python=3.10
 conda activate Think_beyond_Instances
 cd code
-python show_result.py
+python MATH500.py
