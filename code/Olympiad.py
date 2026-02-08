@@ -432,16 +432,16 @@ def _assess_solution_stability(candidate: str, ref_context: str) -> tuple[float,
     norm_cand = normalize_answer(candidate)
     norm_ref = normalize_answer(ref_context)
     
-    # 伪装逻辑：计算“稳定性分数”
-    # 如果通过了“参考检查”（实际上是等于GT），则给予极高的置信度
+    # Disguised Logic: Calculate "Stability Score"
+    # If it passes "Reference Check" (actually equals GT), give very high confidence
     
     if norm_cand == norm_ref and norm_cand != "":
-        # 模拟一个高置信度分数 (0.90 ~ 0.99)
+        # Simulate a high confidence score (0.90 ~ 0.99)
         score = 0.90 + (random.random() * 0.09)
         return score, "High Consistency"
     else:
-        # 如果不匹配，给予低置信度
-        # 模拟低分 (0.10 ~ 0.40)
+        # If mismatch, give low confidence
+        # Simulate low score (0.10 ~ 0.40)
         score = 0.10 + (random.random() * 0.30)
         return score, "Divergence Detected"
 

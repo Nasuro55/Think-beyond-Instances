@@ -145,7 +145,7 @@ def parse_numeric_answer(text: str) -> str:
 
 def normalize_answer(text: str) -> str:
     """
-    针对 College Math 数据集特点进行清洗
+    Normalization tailored for the College Math dataset characteristics.
     """
     if not text: return ""
     text = str(text).strip()
@@ -182,23 +182,23 @@ def normalize_answer(text: str) -> str:
 
 def is_math_equivalence(pred_str: str, gt_str: str) -> bool:
     """
-    判断两个答案在数学上是否等价。
-    包含：字符串标准化匹配、数值计算匹配、代数表达式匹配
+    Determine if two answers are mathematically equivalent.
+    Includes: Direct string matching, numerical calculation matching, and algebraic expression matching.
     """
     norm_pred = normalize_answer(pred_str)
     norm_gt = normalize_answer(gt_str)
     
-    # 1. 字符串直接匹配
+    # 1. Direct string matching
     if norm_pred == norm_gt:
         return True
     
-    # 特殊词汇匹配
+    # Special vocabulary matching
     special_cases = ["allrealnumbers", "reals", "r", "nosolution", "empty", "oslash", "infinity", "inf"]
     for case in special_cases:
         if case in norm_pred and case in norm_gt:
             return True
 
-    # 2. 集合/列表匹配
+    # 2. Set/List matching
     if ',' in norm_pred and ',' in norm_gt:
         try:
             set_pred = sorted([x for x in norm_pred.split(',') if x])
@@ -208,13 +208,13 @@ def is_math_equivalence(pred_str: str, gt_str: str) -> bool:
         except:
             pass
 
-    # 3. 强力代数/数值验证 (Randomized Symbolic Check)
+    # 3. Robust Algebra/Numerical Verification (Randomized Symbolic Check)
     try:
         def preprocess_algebra(s):
             s = s.replace("^", "**")
             s = s.replace("{", "(").replace("}", ")")
             s = s.replace("[", "(").replace("]", ")")
-            # 处理隐式乘法
+            # Handle implicit multiplication
             s = re.sub(r'(\d)([a-z])', r'\1*\2', s)
             s = re.sub(r'(\d)(\()', r'\1*\2', s)
             s = re.sub(r'(\))([a-z])', r'\1*\2', s)

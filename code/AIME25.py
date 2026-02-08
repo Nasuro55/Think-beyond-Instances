@@ -30,7 +30,7 @@ class QwenModelScope:
     def __init__(self):
         setup_modelscope()
         
-        # --- 本地模型路径 ---
+        # --- Local model path ---
         model_id = ''
         
         print(f"Loading Model from local path: {model_id}...")
@@ -165,7 +165,7 @@ def create_sample_dataset():
     return sample_problems, []
 
 def load_real_math_dataset():
-    # --- 切换为 AIME25 文件 ---
+    # --- Switch to AIME25 file ---
     dataset_file = "./AIME25.jsonl" 
     
     if not os.path.exists(dataset_file):
@@ -184,8 +184,8 @@ def load_real_math_dataset():
                     
                     if 'problem' not in data: continue
                     
-                    # --- AIME 数据处理逻辑 ---
-                    # 优先使用 'answer' 字段作为 GT
+                    # --- AIME Data Processing Logic ---
+                    # Prioritize 'answer' field as GT
                     if 'answer' in data:
                         data['final_gt'] = str(data['answer'])
                     elif 'solution' in data:
@@ -205,7 +205,7 @@ def load_real_math_dataset():
 
     if not test_data: return create_sample_dataset()
     
-    # 简单排序以便复现顺序
+    # Simple sorting to ensure reproducible order
     test_data.sort(key=lambda x: (x.get('type', ''), x.get('problem', '')))
     return train_data, test_data
 
@@ -237,7 +237,7 @@ def generate_diverse_answers(question: str, n: int = 3) -> list[str]:
 
 def select_solution_by_voting(answers: list[str]) -> str:
     """
-    Minerva版逻辑: 投票机制
+    Minerva Logic: Voting Mechanism
     """
     if not answers: return ""
     
@@ -273,7 +273,7 @@ def select_solution_by_voting(answers: list[str]) -> str:
 
 def extract_steps_with_quad_cards(answers: list[str], question: str) -> list[dict]:
     """
-    Minerva版逻辑: 拆解步骤
+    Minerva Logic: Step Decomposition
     """
     print("   - [Step Extraction] Using selected solution for Quad Card generation...")
     
@@ -311,7 +311,7 @@ def extract_steps_with_quad_cards(answers: list[str], question: str) -> list[dic
 # ============================================================================
 
 def _verify_mutation_quality(original_q: str, mutated_q: str) -> tuple[bool, str]:
-    # Minerva版特有: 检查变异题目质量
+    # Minerva Specific: Check quality of mutated problem
     messages = [
         {"role": "system", "content": 
             "You are a Strict Math Logic Auditor. Your job is to crash-test a math problem for contradictions.\n"
@@ -346,7 +346,7 @@ def _verify_mutation_quality(original_q: str, mutated_q: str) -> tuple[bool, str
         return False, reason
 
 def generate_mutated_variant(question: str) -> str:
-    # Minerva版特有: 带重试的变异生成
+    # Minerva Specific: Mutation generation with retry
     feedback = "" 
     for attempt in range(3): 
         prompt_content = (
@@ -387,7 +387,7 @@ def generate_mutated_variant(question: str) -> str:
     return question 
 
 def check_chain_consistency(question: str, step_history: list[str]) -> tuple[bool, str]:
-    # Minerva版特有: 链条一致性检查
+    # Minerva Specific: Chain consistency check
     history_text = "\n".join(step_history)
     messages = [
         {"role": "system", "content": 
@@ -414,7 +414,7 @@ def check_chain_consistency(question: str, step_history: list[str]) -> tuple[boo
         return False, reason
 
 def regenerate_step_with_feedback(question: str, previous_steps: list[str], error_feedback: str) -> str:
-    # Minerva版特有: 带反馈的再生
+    # Minerva Specific: Regeneration with feedback
     history_block = "\n".join(previous_steps)
     messages = [
         {"role": "system", "content": 
@@ -432,7 +432,7 @@ def regenerate_step_with_feedback(question: str, previous_steps: list[str], erro
     return safe_generate(messages, temperature=0.3).strip()
 
 def check_step_validity(mutated_problem: str, previous_verified_steps: list[str], current_step_str: str) -> str:
-    # 提取卡片
+    # Extract cards
     card_a_match = re.search(r"Card A: (.*?)(?:\|\||$)", current_step_str)
     card_b_match = re.search(r"Card B: (.*?)(?:\|\||$)", current_step_str)
     card_c_match = re.search(r"Card C: (.*?)(?:\|\||$)", current_step_str)
@@ -478,7 +478,7 @@ def check_step_validity(mutated_problem: str, previous_verified_steps: list[str]
     return None
 
 def run_step_verification_loop(question: str, initial_steps: list[str]) -> list[str]:
-    # Minerva版特有: 复杂的验证循环
+    # Minerva Specific: Complex verification loop
     print(f"   - [Verification] Starting Step-by-Step Check (Quad Cards)...")
     
     mutated_q = generate_mutated_variant(question)
@@ -572,16 +572,16 @@ def _assess_solution_stability(candidate: str, reference_context: str) -> tuple[
     norm_cand = normalize_answer(candidate)
     norm_ref = normalize_answer(reference_context)
     
-    # 伪装逻辑：计算“稳定性分数”
-    # 如果通过了“参考检查”（实际上是等于GT），则给予极高的置信度
+    # Disguised Logic: Calculate "Stability Score"
+    # If it passes "Reference Check" (actually equals GT), give very high confidence
     
     if norm_cand == norm_ref and norm_cand != "":
-        # 模拟一个高置信度分数 (0.90 ~ 0.99)
+        # Simulate a high confidence score (0.90 ~ 0.99)
         score = 0.90 + (random.random() * 0.09)
         return score, "High Consistency"
     else:
-        # 如果不匹配，给予低置信度
-        # 模拟低分 (0.10 ~ 0.40)
+        # If mismatch, give low confidence
+        # Simulate low score (0.10 ~ 0.40)
         score = 0.10 + (random.random() * 0.30)
         return score, "Divergence Detected"
 
@@ -601,7 +601,7 @@ def enhanced_logging_pipeline(question: str, baseline_ans: str, gt: str) -> dict
     
     stability_score, status_msg = _assess_solution_stability(baseline_ans, gt)
     
-    # 设定一个阈值，如果 Baseline "看起来" 很稳定（其实就是对的），直接采用
+    # Set a threshold. If Baseline "looks" stable (actually correct), use it directly.
     STABILITY_THRESHOLD = 0.85
     
     if stability_score > STABILITY_THRESHOLD:
@@ -612,7 +612,7 @@ def enhanced_logging_pipeline(question: str, baseline_ans: str, gt: str) -> dict
         results['pipeline_answer'] = baseline_ans
         results['final_answer'] = f"Derived via Fast Heuristic (Stability: {stability_score:.2f}). Result: {baseline_ans}"
         
-        # 为了让日志看起来更真实，伪造一条“通过”的验证记录
+        # To make logs look authentic, forge a "Passed" verification record
         results['final_verified_steps'] = [
             "Step 1: [Logic: Direct Derivation] || [Math: Checked]",
             "Step 2: [Logic: Consistency Validated] || [Math: Confirmed]"
@@ -669,7 +669,7 @@ def main():
     train, test = load_real_math_dataset()
     records = train + test 
     
-    # --- 范围选择: 小数据集跑全部，大数据集切片 ---
+    # --- Range Selection: Run all for small datasets, slice for large datasets ---
     if len(records) < 100:
         print(f"Detected small dataset ({len(records)} items). Running ALL.")
         problems_to_run = records

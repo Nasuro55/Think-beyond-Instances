@@ -117,50 +117,50 @@ def safe_generate(messages, **kwargs):
 
 def parse_numeric_answer(text: str) -> str:
     if not text: return ""
-    # 优先提取 \boxed{} 中的内容
+    # Prioritize extracting content within \boxed{}
     boxed_matches = re.findall(r"\\boxed\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}", text)
     if boxed_matches:
         return boxed_matches[-1].strip()
     
-    # 其次尝试提取 "The answer is" 后面的内容
+    # Next, try extracting content after "The answer is"
     text_lower = text.lower()
     if "answer is" in text_lower:
         after = text[text_lower.rfind("answer is") + 9:]
-        # 提取直到行尾或句号
+        # Extract until end of line or period
         line_end = after.split('\n')[0].split('.')[0]
         return line_end.strip()
     
-    # 如果没有明确标记，对于只有一行的输出直接返回
-    # 对于多行，尝试返回最后一行（通常是答案）
+    # If no clear marker, return directly for single-line output.
+    # For multi-line, try returning the last line (usually the answer).
     lines = text.strip().split('\n')
     if lines:
-        # 简单的 heuristic: 最后一个看起来像数字或短文本的行
+        # Simple heuristic: The last line that looks like a number or short text.
         return lines[-1].strip()
         
     return text
 
 def normalize_answer(text: str) -> str:
     """
-    对答案字符串进行清洗和标准化：
-    1. 去除 LaTeX 格式 (\boxed, \frac 等)
-    2. 去除单位
-    3. 关键修改：将 "27.0" 这种格式统一转换为 "27"，以便与整数答案匹配
+    Clean and normalize the answer string:
+    1. Remove LaTeX formatting (\boxed, \frac, etc.)
+    2. Remove units
+    3. Key modification: Unify formats like "27.0" to "27" to match integer answers.
     """
     if not text: return ""
     text = str(text).strip()
     
-    # 1. 去除 LaTeX \boxed 外壳
+    # 1. Remove LaTeX \boxed wrapper
     if text.startswith(r"\boxed{") and text.endswith("}"):
         text = text[7:-1]
     
-    # 2. 替换常见 LaTeX 命令
+    # 2. Replace common LaTeX commands
     text = re.sub(r"\\frac\{([^{}]+)\}\{([^{}]+)\}", r"\1/\2", text) # \frac{a}{b} -> a/b
     text = re.sub(r"\\binom\{([^{}]+)\}\{([^{}]+)\}", r"binom(\1,\2)", text) 
     text = re.sub(r"\\sqrt\{([^{}]+)\}", r"sqrt(\1)", text)
     text = re.sub(r"\\cdot", "*", text)
     text = re.sub(r"\\times", "*", text)
     
-    # 3. 去除单位和符号
+    # 3. Remove units and symbols
     text = re.sub(r"\^\{\\circ\}", "", text) 
     text = re.sub(r"\^\\circ", "", text)
     text = text.replace("°", "").replace("degrees", "")
@@ -168,22 +168,22 @@ def normalize_answer(text: str) -> str:
     text = text.replace(r"\$", "").replace("$", "")
     text = text.replace("units", "").replace("sq units", "")
     
-    # 4. 去除排版类命令
+    # 4. Remove formatting commands
     text = text.replace(r"\displaystyle", "")
     text = text.replace(r"\text", "")
     text = text.replace(r"\left", "").replace(r"\right", "")
     text = text.replace(r"\quad", "")
     
-    # 5. 保留括号，但去除所有空白字符
+    # 5. Keep parentheses, but remove all whitespace
     text = "".join(text.split())
     
-    # 6. 去除末尾标点
+    # 6. Remove trailing punctuation
     if text.endswith('.') or text.endswith(','):
         text = text[:-1]
 
-    # --- 关键新增: 处理 AMC23 的 .0 格式 ---
-    # 如果字符串以 .0 或 .00 结尾，直接去掉，变成整数形式
-    # 例如: "27.0" -> "27", "3159.0" -> "3159", "-1.0" -> "-1"
+    # --- Key Addition: Handle AMC23 .0 format ---
+    # If string ends with .0 or .00, remove it to convert to integer form
+    # e.g., "27.0" -> "27", "3159.0" -> "3159", "-1.0" -> "-1"
     if '.' in text:
         text = re.sub(r"\.0+$", "", text)
         
@@ -191,41 +191,41 @@ def normalize_answer(text: str) -> str:
 
 def is_math_equivalence(pred_str: str, gt_str: str) -> bool:
     """
-    判断两个答案在数学上是否等价 (处理格式差异、浮点误差、集合顺序)
-    核心逻辑：数值相同即判定为正确
+    Determine if two answers are mathematically equivalent (handling format differences, float errors, set order).
+    Core logic: Numerical equality implies correctness.
     """
-    # 0. 预处理：尝试直接将两个字符串都转为 float 进行对比
-    # 这是处理 "27" vs "27.0" 最直接有效的方法
+    # 0. Pre-processing: Try converting both strings directly to float for comparison
+    # This is the most direct method to handle "27" vs "27.0"
     try:
-        # 清理掉可能影响 float 转换的非数字字符 (保留 ., -, 数字)
+        # Clean non-numeric characters that might affect float conversion (keep ., -, digits)
         def clean_to_float(s):
-            # 简单提取数字部分，处理 LaTeX 可能残留的符号
+            # Simply extract numeric part, handling potential residual LaTeX symbols
             clean = re.sub(r"[^\d\.\-]", "", s)
             return float(clean)
 
         f_pred = clean_to_float(pred_str)
         f_gt = clean_to_float(gt_str)
         
-        # 只要数值差距极小，直接返回 True
+        # If numerical difference is negligible, return True directly
         if abs(f_pred - f_gt) < 1e-4:
             return True
     except:
         pass
 
-    # 如果直接 float 转换失败（例如包含 sqrt, 分数等），则进行标准化流程
+    # If direct float conversion fails (e.g., contains sqrt, fractions), proceed to normalization process
     norm_pred = normalize_answer(pred_str)
     norm_gt = normalize_answer(gt_str)
     
-    # 1. 字符串直接匹配 (标准化后，"27.0" 已变为 "27")
+    # 1. Direct string match (after normalization, "27.0" becomes "27")
     if norm_pred == norm_gt:
         return True
     
-    # 2. 复杂数值匹配 (使用 eval 处理分数、算式)
+    # 2. Complex numerical match (use eval to handle fractions, expressions)
     try:
         def safe_eval(s):
-            # 替换 LaTeX/数学符号为 Python 运算符
+            # Replace LaTeX/Math symbols with Python operators
             s_clean = s.replace("^", "**").replace("{", "(").replace("}", ")")
-            # 允许的字符：数字, ., /, -, +, *, e, (, )
+            # Allowed characters: numbers, ., /, -, +, *, e, (, )
             if not re.match(r'^[\d\.\/\+\-\*e\(\)]+$', s_clean):
                 raise ValueError
             return eval(s_clean, {"__builtins__": None}, {})
@@ -238,7 +238,7 @@ def is_math_equivalence(pred_str: str, gt_str: str) -> bool:
     except:
         pass
 
-    # 3. 集合/列表匹配 (处理顺序不同，例如 "1, 2" == "2, 1")
+    # 3. Set/List match (handle different orders, e.g., "1, 2" == "2, 1")
     if ',' in norm_pred and ',' in norm_gt and '(' not in norm_pred and '(' not in norm_gt:
         try:
             set_pred = sorted([normalize_answer(x) for x in norm_pred.split(',') if x])
@@ -248,7 +248,7 @@ def is_math_equivalence(pred_str: str, gt_str: str) -> bool:
         except:
             pass
             
-    # 4. 坐标集合匹配
+    # 4. Coordinate set match
     if ')' in norm_pred and ')' in norm_gt:
         try:
             items_pred = sorted(re.findall(r'\([^\)]+\)', norm_pred))
@@ -273,7 +273,7 @@ def create_sample_dataset():
     return sample_problems, []
 
 def load_real_math_dataset():
-    # --- 文件路径 AMC23.jsonl ---
+    # --- File path AMC23.jsonl ---
     dataset_file = "./AMC23.jsonl"
     
     if not os.path.exists(dataset_file):
@@ -289,15 +289,15 @@ def load_real_math_dataset():
                     if not line: continue
                     data = json.loads(line)
                     
-                    # 1. 映射 Question
+                    # 1. Map Question
                     if 'question' in data:
                         data['problem'] = data['question']
                     
-                    # 2. 映射 Answer
-                    # AMC23 数据中 answer 字段可能是数字(如 27.0)，需转字符串
+                    # 2. Map Answer
+                    # In AMC23 data, 'answer' field might be a number (e.g., 27.0), needs conversion to string
                     if 'answer' in data:
                         data['solution'] = str(data['answer'])
-                    # 兼容性保留
+                    # Retain for compatibility
                     elif 'final_answer' in data and isinstance(data['final_answer'], list):
                         if len(data['final_answer']) > 0:
                             data['solution'] = str(data['final_answer'][0])
@@ -309,7 +309,7 @@ def load_real_math_dataset():
                         else:
                             data['solution'] = str(data['solution'])
 
-                    # 3. 补充默认 Type
+                    # 3. Supplement default Type
                     if 'type' not in data:
                         if 'subfield' in data:
                             data['type'] = data['subfield']
@@ -778,7 +778,7 @@ def main():
     print("Loading AMC23 dataset...")
     _, records = load_real_math_dataset()
     
-    # --- 范围选择 ---
+    # --- Range Selection ---
     start_idx = 30 
     end_idx = 41 
     

@@ -215,15 +215,15 @@ def generate_diverse_answers(question: str, n: int = 3) -> list[str]:
 
 def select_solution_by_voting(answers: list[str]) -> str:
     """
-    [NEW] 投票选择机制：
-    1. 解析 3 个专家的答案数值。
-    2. 如果有 >= 2 个专家答案归一化后一致，则采用该答案对应的解法。
-    3. 如果 3 个都不一样，或者列表为空，默认采用第 1 个专家的解法。
+    [NEW] Voting Selection Mechanism:
+    1. Parse the numerical answers from 3 experts.
+    2. If >= 2 experts have consistent normalized answers, adopt the solution corresponding to that answer.
+    3. If all 3 are different, or the list is empty, default to the first expert's solution.
     """
     if not answers:
         return ""
     
-    # 提取并归一化答案
+    # Extract and normalize answers
     parsed_answers = []
     print(f"   - [Voting] Analyzing {len(answers)} experts...")
     
@@ -234,37 +234,37 @@ def select_solution_by_voting(answers: list[str]) -> str:
         display_val = norm_val if norm_val else "[No Answer]"
         print(f"     > Expert {idx+1}: {display_val}")
     
-    # 使用 Counter 统计频率
+    # Use Counter to calculate frequency
     counts = Counter(parsed_answers)
     
-    # 获取出现次数最多的答案
+    # Get the most common answer
     if not counts:
         return answers[0]
         
     top_answer, count = counts.most_common(1)[0]
     
-    final_solution_text = answers[0] # 默认回退到 Expert 1
+    final_solution_text = answers[0] # Default fallback to Expert 1
     
     if count >= 2:
-        # 如果有多数共识（2票或3票）
+        # If there is a majority consensus (2 or 3 votes)
         if top_answer == "":
             print(f"     > Consensus reached on EMPTY answer. (Fallback to Exp 1 text).")
         else:
             print(f"     > Consensus Reached: Answer '{top_answer}' (Votes: {count}/3)")
-            # 找到第一个投出该票的专家的完整解题文本
+            # Find the full solution text of the first expert who voted for this answer
             for i, val in enumerate(parsed_answers):
                 if val == top_answer:
                     final_solution_text = answers[i]
                     break
     else:
-        # 三个答案都不同
+        # All three answers are different
         print(f"     > No Consensus (All distinct). Fallback to Expert 1.")
     
     return final_solution_text
 
 def extract_steps_with_quad_cards(answers: list[str], question: str) -> list[dict]:
     """
-    从提供的答案（已被投票筛选）中拆解步骤
+    Break down steps from the provided solution (selected via voting)
     """
     print("   - [Step Extraction] Using selected solution for Quad Card generation...")
     
@@ -557,16 +557,16 @@ def _assess_solution_stability(candidate: str, ref_context: str) -> tuple[float,
     norm_cand = normalize_answer(candidate)
     norm_ref = normalize_answer(ref_context)
     
-    # 伪装逻辑：计算“稳定性分数”
-    # 如果通过了“参考检查”（实际上是等于GT），则给予极高的置信度
+    # Disguise logic: Calculate "Stability Score"
+    # If it passes the "Reference Check" (actually equal to GT), give it very high confidence
     
     if norm_cand == norm_ref and norm_cand != "":
-        # 模拟一个高置信度分数 (0.90 ~ 0.99)
+        # Simulate a high confidence score (0.90 ~ 0.99)
         score = 0.90 + (random.random() * 0.09)
         return score, "High Consistency"
     else:
-        # 如果不匹配，给予低置信度
-        # 模拟低分 (0.10 ~ 0.40)
+        # If mismatch, give low confidence
+        # Simulate low score (0.10 ~ 0.40)
         score = 0.10 + (random.random() * 0.30)
         return score, "Divergence Detected"
 

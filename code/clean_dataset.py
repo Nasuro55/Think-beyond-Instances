@@ -1,66 +1,67 @@
-
 import json
 import re
 
 def clean_answer(answer_str):
     """
-    针对数学数据集答案的清洗函数
+    Cleaning function for mathematical dataset answers
     """
     if not isinstance(answer_str, str):
         answer_str = str(answer_str)
     
     # =======================================================
-    # 1. 清理 LaTeX 环境中的垃圾字符
+    # 1. Clean up garbage characters in LaTeX environment
     # =======================================================
-    # 移除 LaTeX 的紧缩空格符 (\!) 和小空格 (\,)
+    # Remove LaTeX negative spacing (\!) and small spacing (\,)
     answer_str = re.sub(r'\\[!,;]', '', answer_str)
     
-    # 移除美元符号 \$ 或 $
+    # Remove dollar signs \$ or $
     answer_str = answer_str.replace('\\$', '').replace('$', '')
 
     # =======================================================
-    # 2. 修复单位和文字 (\text, \mbox)
+    # 2. Fix units and text (\text, \mbox)
     # =======================================================
     
-    # 常见的需要完全删除的单位词
+    # Common unit words that need to be completely removed
     units_to_remove = [
         'cm', 'm', 'inches', 'feet', 'degrees', 'cents', 'dollars', 
         'rupee', 'kuna', 'pula', 'sq\\.?\\s*units', 'units'
     ]
     
     def text_replacer(match):
-        full_match = match.group(0)       # 获取完整的 "\text{...}"
-        content = match.group(1).strip()  # 获取括号内的内容 "..."
+        full_match = match.group(0)       # Get the full match "\text{...}"
+        content = match.group(1).strip()  # Get content inside braces "..."
         
-        # 检查 content 是否以单位结尾，或者本身就是单位
+        # Check if content ends with a unit, or is a unit itself
         for unit in units_to_remove:
-            # 匹配如 " cm" 或 "5 cents" 中的 "cents"
+            # Match cases like " cm" or "5 cents" inside the text
             if re.search(r'\b' + unit + r'\b', content, re.IGNORECASE):
-                # 尝试保留前面的数字，删除单位
-                # 例如 \text{5 cents} -> 5
+                # Try to keep the number part, remove the unit
+                # Example: \text{5 cents} -> 5
                 num_part = re.search(r'[\d\.]+', content)
                 return num_part.group(0) if num_part else ''
         
-        # 【修改点】：如果不是单位（例如是人名 "Navin"），直接返回完整的原始匹配字符串
-        # 这样就保留了 \text{} 包装
+        # [Modification Point]: If it is not a unit (e.g., person name "Navin"), 
+        # return the complete original match string directly.
+        # This preserves the \text{} wrapper.
         return full_match
 
-    # 匹配 \text{...} 或 \mbox{...}
+    # Match \text{...} or \mbox{...}
     answer_str = re.sub(r'\\(?:text|mbox)\{([^\}]+)\}', text_replacer, answer_str)
 
-    # 二次清理：有时单位不在 \text{} 里，而是直接跟在数字后面
+    # Secondary cleanup: Sometimes units are not inside \text{}, but directly follow the number
     for unit in units_to_remove:
         answer_str = re.sub(r'\s+' + unit + r'\b', '', answer_str, flags=re.IGNORECASE)
 
     # =======================================================
-    # 3. 修复度数符号
+    # 3. Fix degree symbols
     # =======================================================
     answer_str = re.sub(r'\^?\{?\\circ\}?', '', answer_str)
 
     # =======================================================
-    # 4. 修复数字中的逗号 (千分位)
+    # 4. Fix commas in numbers (thousands separator)
     # =======================================================
-    # 核心逻辑：只删除"两侧都是数字"且"右边正好是3位数字"的逗号
+    # Core logic: Only remove commas that are "surrounded by digits" and 
+    # "followed by exactly 3 digits on the right"
     while True:
         new_str = re.sub(r'(\d),\s*(\d{3})\b', r'\1\2', answer_str)
         if new_str == answer_str:
@@ -68,16 +69,16 @@ def clean_answer(answer_str):
         answer_str = new_str
 
     # =======================================================
-    # 5. 修复空格
+    # 5. Fix spaces
     # =======================================================
-    # replace(" ", "") 会去除所有空格。
-    # 对于保留下来的 \text{ Navin }，这里会变成 \text{Navin}，符合 LaTeX 标准格式
+    # replace(" ", "") will remove all spaces.
+    # For preserved \text{ Navin }, this becomes \text{Navin}, complying with LaTeX standard format
     answer_str = answer_str.replace(' ', '')
     
     # =======================================================
-    # 6. 最终整理
+    # 6. Final cleanup
     # =======================================================
-    # 移除可能残留的 \boxed{} 包装
+    # Remove potential residual \boxed{} wrapper
     match_boxed = re.search(r'\\boxed\{(.*)\}', answer_str)
     if match_boxed:
         answer_str = match_boxed.group(1)
@@ -85,15 +86,15 @@ def clean_answer(answer_str):
     return answer_str.strip()
 
 # ==========================================
-# 执行文件处理
+# Execute file processing
 # ==========================================
-input_file = './test.jsonl'        # 你的原始文件名
-output_file = './data.jsonl'       # 输出文件名
+input_file = './test.jsonl'        # Your original filename
+output_file = './data.jsonl'       # Output filename
 
-# 统计修正计数
+# Correction counter
 fixed_count = 0
 
-print("开始清洗数据...")
+print("Starting data cleaning...")
 with open(input_file, 'r', encoding='utf-8') as infile, \
      open(output_file, 'w', encoding='utf-8') as outfile:
     
@@ -109,7 +110,7 @@ with open(input_file, 'r', encoding='utf-8') as infile, \
                 
                 if original != cleaned:
                     fixed_count += 1
-                    # 打印含有 text 的修复情况以供检查
+                    # Print fix details containing 'text' for inspection
                     if '\\text' in original:
                          print(f"Line {line_num+1} Fixed: [{original}]  ->  [{cleaned}]")
                 
@@ -120,4 +121,4 @@ with open(input_file, 'r', encoding='utf-8') as infile, \
         except json.JSONDecodeError:
             print(f"Error parsing line {line_num}")
 
-print(f"\n清洗完成！共修复了 {fixed_count} 条数据。结果已保存至 {output_file}")
+print(f"\nCleaning completed! Fixed {fixed_count} items. Results saved to {output_file}")

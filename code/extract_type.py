@@ -6,7 +6,7 @@ def get_unique_types(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             for line in f:
-                # 跳过空行
+                # Skip empty lines
                 if not line.strip():
                     continue
                 try:
@@ -22,10 +22,10 @@ def get_unique_types(file_path):
     except FileNotFoundError:
         return "File not found."
 
-# 使用示例
+# Usage example
 file_name = 'train-00000-of-00001 (1).jsonl'
 result = get_unique_types(file_name)
 
-# 打印结果
+# Print results
 for t in result:
     print(t)

@@ -3,10 +3,10 @@ import os
 
 def extract_answers_to_txt(jsonl_file, txt_file):
     if not os.path.exists(jsonl_file):
-        print(f"❌ 错误：找不到文件 {jsonl_file}")
+        print(f"❌ Error: File not found {jsonl_file}")
         return
 
-    print(f"正在处理 {jsonl_file} ...")
+    print(f"Processing {jsonl_file} ...")
     
     count = 0
     with open(jsonl_file, 'r', encoding='utf-8') as f_in, \
@@ -19,9 +19,9 @@ def extract_answers_to_txt(jsonl_file, txt_file):
             try:
                 data = json.loads(line)
                 
-                # 1. 优先查找 'final_answer' (图片显示的字段)
-                # 2. 如果没有，查找 'answer' (如果是你之前转换过的版本)
-                # 3. 如果都没有，查找 'solution' (作为兜底，虽然通常很长)
+                # 1. Prioritize 'final_answer' (field shown in reference images)
+                # 2. If not found, check 'answer' (if it's a previously converted version)
+                # 3. If neither exists, check 'solution' (as a fallback, though usually long)
                 ans_content = None
                 
                 if 'final_answer' in data:
@@ -29,29 +29,29 @@ def extract_answers_to_txt(jsonl_file, txt_file):
                 elif 'answer' in data:
                     ans_content = data['answer']
                 elif 'solution' in data:
-                    # 注意：solution 通常很长，如果只要最终数值，通常不取这个
+                    # Note: 'solution' is usually long; if only the final value is needed, this is usually not taken
                     ans_content = data['solution']
                 
-                # 处理数据格式
-                # 图片中显示 final_answer 是列表格式 ["2"]，我们需要提取里面的字符串
+                # Handle data format
+                # If final_answer is a list format like ["2"], we need to extract the string inside
                 if isinstance(ans_content, list):
                     if len(ans_content) > 0:
-                        ans_content = ans_content[0] # 提取列表第一个元素
+                        ans_content = ans_content[0] # Extract the first element of the list
                     else:
                         ans_content = ""
                 
-                # 确保转为字符串并写入，去除首尾空白
+                # Ensure conversion to string and write, removing leading/trailing whitespace
                 final_str = str(ans_content).strip()
                 f_out.write(final_str + "\n")
                 count += 1
                 
             except json.JSONDecodeError:
-                print(f"⚠️ 跳过无法解析的行")
+                print(f"⚠️ Skipping unparsable line")
                 continue
 
-    print(f"✅ 提取完成！")
-    print(f"📄 共提取 {count} 行答案")
-    print(f"💾 结果已保存至: {txt_file}")
+    print(f"✅ Extraction complete!")
+    print(f"📄 Extracted {count} answer lines in total")
+    print(f"💾 Result saved to: {txt_file}")
 
 if __name__ == "__main__":
     input_filename = "College_math.jsonl"
